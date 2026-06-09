@@ -3,7 +3,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import numpy.typing as npt
 
-from ndsl.monitor.protocol import Monitor
+from .protocol import Monitor
 
 
 try:
@@ -40,14 +40,17 @@ class DiagManagerMonitor(Monitor):
 
     def store(self, state: dict) -> None:
         """
-        Sends data from quantities in the state to be written by the diag_manager.
+        Sends data for a single quantity to the diag_manager 
         All state variables must be registered beforehand via register_field.
         """
         # get the associated quantities/axis for each field that has been registered
         if state is not None:
             time = state["time"]
             for field_name, field_id in self.fields.items():
-                field_quantity = state[field_name]
+                try:
+                    field_quantity = state[field_name]
+                except KeyError:
+                    continue
                 success = diag_manager.send_data(
                     diag_field_id=field_id,
                     field=field_quantity.field,
