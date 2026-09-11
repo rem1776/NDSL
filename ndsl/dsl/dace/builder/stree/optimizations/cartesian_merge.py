@@ -8,7 +8,12 @@ from ndsl.dsl.dace.builder.stree.optimizations.off_grid_conditionals import (
     RevertSimplifyConditional,
     SimplifyConditional,
 )
+from ndsl.dsl.dace.builder.stree.optimizations.off_grid_tasklet import (
+    ExtractOffGridTasklet,
+    InlineOffGridTasklet,
+)
 from ndsl.dsl.dace.builder.stree.pipeline import StreePipeline
+from ndsl.dsl.optimization_config import OptimizationHint
 
 
 class CartesianMergePipeline(StreePipeline):
@@ -23,13 +28,13 @@ class CartesianMergePipeline(StreePipeline):
         self,
         backend: Backend,
         *,
+        hint: OptimizationHint,
         overcompute: bool = True,
         merge_order: str = "default",
     ) -> None:
         self._backend = backend
         self._overcompute = overcompute
         self._merge_order = merge_order
-
         if self._merge_order not in (
             "default",
             "IJK",
@@ -40,25 +45,47 @@ class CartesianMergePipeline(StreePipeline):
             "KJI",
         ):
             raise ValueError(f"Unexpected merge order {self._merge_order}.")
+        axis_merge_order = self._axis_merge_order()
 
         passes = []
 
-        axis_merge_order = self._axis_merge_order()
+        # Get offgrid tasklet out of the way
+        passes.append(ExtractOffGridTasklet())
 
+        # Get conditional out of the way
         simplify_conditional = SimplifyConditional()
         passes.append(simplify_conditional)
-
         for axis in axis_merge_order:
             passes.append(InlineOffGridConditionals(axis))
-
         passes.append(RevertSimplifyConditional(simplify_conditional))
 
+        # We are ready to merge
         for axis in axis_merge_order:
-            passes.append(CartesianAxisMerge(axis, overcompute=self._overcompute))
+            # If we want to overcompute we first merge the maps that don't need overcomputation
+            # to be merged so we gather the bigger contiguous maps first, before we introduce
+            # the overcomputation guards.
+            passes.append(
+                CartesianAxisMerge(
+                    axis,
+                    overcompute=False,
+                    hint=hint,
+                )
+            )
+            if self._overcompute:
+                passes.append(
+                    CartesianAxisMerge(
+                        axis,
+                        overcompute=self._overcompute,
+                        hint=hint,
+                    )
+                )
 
+        # Optimize cache-friendliness of offgrid conditional
         passes.append(ExtractOffGridConditionals())
-
         passes.append(MergeConditionals())
+
+        # Optimize cache-friendliness of offgrid tasklet
+        passes.append(InlineOffGridTasklet())
 
         super().__init__(passes=passes)
 

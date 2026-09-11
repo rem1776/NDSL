@@ -1,6 +1,8 @@
-# default_pipeline
+# Basic operations (2D)
 
-::: dsl.dace.builder.stree.default_pipeline
+`ndsl.stencil` offers the following basic operations as building blocks in 2D:
+
+::: stencils.basic_operations_2d
 
 <style>
 /* re-enable the left side navigation bar for this page */

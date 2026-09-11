@@ -1,6 +1,6 @@
-# default_pipeline
+# optimization_config
 
-::: dsl.dace.builder.stree.default_pipeline
+::: dsl.optimization_config
 
 <style>
 /* re-enable the left side navigation bar for this page */

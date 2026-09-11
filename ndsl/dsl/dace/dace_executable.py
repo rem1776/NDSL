@@ -11,6 +11,7 @@ from dace.sdfg.sdfg import SDFG
 from gt4py import storage as gt_storage
 from mpi4py import MPI
 
+from ndsl import ndsl_log
 from ndsl.comm.local_comm import LocalComm
 from ndsl.config.backend import Backend
 from ndsl.dsl.dace.dace_config import DaceConfig, DaCeOrchestration
@@ -181,6 +182,7 @@ class DaceExecutable:
             original_unoptimized_sdfg = SDFG.from_file(str(gt4py_sdfg_bundle_sdfg))
 
         sdfg = SDFG.from_file(f"{bundle_path}/{_OPTIMIZED_SDFG_NAME}.sdfgz")
+        sdfg.build_folder = f"{os.getcwd()}/.dacecache"
         with open(bundle_path / "backend.txt", "r") as f:
             backend = Backend(f.readlines()[0])
 
@@ -238,6 +240,8 @@ class DaceExecutable:
         """Replay executable using last cached arguments"""
         if not self.arguments:
             raise RuntimeError(f"Cannot replay {self.name} - no arguments available")
+
+        ndsl_log.info("Benching...")
 
         self.performance_collector.start_cuda_profiler()
 

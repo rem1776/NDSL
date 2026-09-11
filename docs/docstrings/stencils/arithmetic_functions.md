@@ -1,6 +1,8 @@
-# default_pipeline
+# Arithmetic functions
 
-::: dsl.dace.builder.stree.default_pipeline
+`ndsl.stencils` offers the following arithmetic functions as building blocks:
+
+::: stencils.arithmetic_functions
 
 <style>
 /* re-enable the left side navigation bar for this page */
